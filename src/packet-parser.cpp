@@ -11,17 +11,10 @@ auto PacketParser::build_header(const PacketType pt, const size_t payload_size, 
     };
 }
 
-auto PacketParser::send_header(const PacketType pt, const size_t payload_size, const std::optional<PacketID> ref_id) -> coop::Async<bool> {
+auto PacketParser::send_header(coop::LockGuard&, const PacketType pt, const size_t payload_size, const std::optional<PacketID> ref_id) -> coop::Async<bool> {
     coop_unwrap(header, build_header(pt, payload_size, ref_id));
-    coop_ensure(co_await call_send_data({std::bit_cast<std::byte*>(&header), sizeof(Header)}));
+    coop_ensure(co_await send_data({std::bit_cast<std::byte*>(&header), sizeof(Header)}));
     co_return true;
-}
-
-auto PacketParser::call_send_data(const BytesRef data) -> coop::Async<bool> {
-    co_await send_lock.lock();
-    const auto ret = co_await send_data(data);
-    send_lock.unlock();
-    co_return ret;
 }
 
 auto PacketParser::parse_received(BytesRef data) -> std::optional<ParsedPacket> {
@@ -44,9 +37,10 @@ auto PacketParser::parse_received(BytesRef data) -> std::optional<ParsedPacket> 
 }
 
 auto PacketParser::send_packet(const PacketType pt, const void* const data, const size_t size, const std::optional<PacketID> ref_id) -> coop::Async<bool> {
-    coop_ensure(co_await send_header(pt, size, ref_id));
+    auto lock = co_await coop::LockGuard::lock(send_lock);
+    coop_ensure(co_await send_header(lock, pt, size, ref_id));
     if(size > 0) {
-        coop_ensure(co_await call_send_data({std::bit_cast<std::byte*>(data), size}));
+        coop_ensure(co_await send_data({std::bit_cast<std::byte*>(data), size}));
     }
     co_return true;
 }

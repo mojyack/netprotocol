@@ -1,5 +1,6 @@
 #pragma once
 #include <coop/generator.hpp>
+#include <coop/lock-guard.hpp>
 #include <coop/mutex.hpp>
 #include <coop/promise.hpp>
 #include <coop/single-event.hpp>
@@ -18,8 +19,7 @@ struct PacketParser {
     std::function<coop::Async<bool>(BytesRef data)> send_data; // set me
 
     auto build_header(PacketType pt, size_t payload_size = 0, std::optional<PacketID> ref_id = std::nullopt) -> std::optional<Header>;
-    auto send_header(PacketType pt, size_t payload_size = 0, std::optional<PacketID> ref_id = std::nullopt) -> coop::Async<bool>;
-    auto call_send_data(BytesRef data) -> coop::Async<bool>;
+    auto send_header(coop::LockGuard& lock, PacketType pt, size_t payload_size = 0, std::optional<PacketID> ref_id = std::nullopt) -> coop::Async<bool>;
 
     // backend -> parser
     struct ParsedPacket {
@@ -47,9 +47,12 @@ auto PacketParser::send_packet(const T packet, const std::optional<PacketID> ref
         unwrap(payload, packet.template dump<BinaryFormat>(BytesArray(sizeof(Header))), co_return false);
         unwrap(header, build_header(T::pt, payload.size() - sizeof(Header), ref_id), co_return false);
         *(std::bit_cast<Header*>(payload.data())) = header;
-        ensure(co_await call_send_data(payload), co_return false);
+
+        auto lock = co_await coop::LockGuard::lock(send_lock);
+        ensure(co_await send_data(payload), co_return false);
     } else {
-        ensure(co_await send_header(T::pt, 0, ref_id), co_return false);
+        auto lock = co_await coop::LockGuard::lock(send_lock);
+        ensure(co_await send_header(lock, T::pt, 0, ref_id), co_return false);
     }
     co_return true;
 }
