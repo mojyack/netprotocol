@@ -41,6 +41,8 @@ auto SocketServerBackend::client_main(decltype(client_data)::iterator iter) -> c
         client_data.erase(iter);
     }};
 
+    coop_ensure(post_accept(iter->sock));
+
 #define error_act co_return
 loop:
     auto size = SizeType();
@@ -50,6 +52,10 @@ loop:
     co_await on_received(*iter, buffer);
     goto loop;
 #undef error_act
+}
+
+auto SocketServerBackend::post_accept(Socket& /*client*/) -> bool {
+    return true;
 }
 
 auto SocketServerBackend::shutdown() -> coop::Async<bool> {

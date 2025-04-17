@@ -2,6 +2,7 @@
 #include <coop/promise.hpp>
 #include <coop/runner.hpp>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -9,6 +10,14 @@
 #include "server.hpp"
 
 namespace net::tcp {
+auto TCPServerBackend::post_accept(sock::Socket& client) -> bool {
+    ensure(client.set_sockopt(SO_KEEPALIVE, 1));
+    ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPIDLE, 20));
+    ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPINTVL, 5));
+    ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPCNT, 2));
+    return true;
+}
+
 auto TCPServerBackend::start(const uint16_t port, const int backlog) -> coop::Async<bool> {
     coop_ensure(sock::init_socket_system());
     sock = sock::Socket(socket(AF_INET, SOCK_STREAM, 0));

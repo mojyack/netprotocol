@@ -21,6 +21,8 @@ struct SocketServerBackend : ServerBackend {
     auto task_main() -> coop::Async<void>;
     auto client_main(decltype(client_data)::iterator iter) -> coop::Async<void>;
 
+    virtual auto post_accept(Socket& client) -> bool;
+
     // overrides
     auto shutdown() -> coop::Async<bool> override;
     auto disconnect(const ClientData& client) -> coop::Async<bool> override;
