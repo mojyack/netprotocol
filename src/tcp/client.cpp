@@ -17,6 +17,18 @@ declare_autoptr(AddrInfo, addrinfo, freeaddrinfo);
 }
 
 namespace net::tcp {
+namespace {
+auto post_connect(TCPClientBackend& self, sock::Socket& sock) -> coop::Async<bool> {
+    coop_ensure(sock.set_sockopt(SO_KEEPALIVE, 1));
+    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPIDLE, 20));
+    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPINTVL, 5));
+    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPCNT, 2));
+
+    (co_await coop::reveal_runner())->push_task(self.task_main(), &self.task);
+    co_return true;
+}
+} // namespace
+
 auto TCPClientBackend::connect(const char* const host, const uint16_t port) -> coop::Async<bool> {
     coop_ensure(sock::init_socket_system());
 
@@ -46,7 +58,7 @@ auto TCPClientBackend::connect(const char* const host, const uint16_t port) -> c
     }
     coop_ensure(this->sock.is_valid());
 
-    (co_await coop::reveal_runner())->push_task(task_main(), &task);
+    coop_ensure(co_await post_connect(*this, sock));
 
     co_return true;
 }
@@ -65,11 +77,8 @@ auto TCPClientBackend::connect(const std::array<uint8_t, 4> addr, const uint16_t
     coop_ensure(status == 0 || (status == -1 && errno == EINPROGRESS));
     coop_ensure(!(co_await coop::wait_for_file(sock.fd, false, true)).error);
     coop_ensure(sock.get_sockopt(SO_ERROR) == 0);
-    coop_ensure(sock.set_sockopt(SO_KEEPALIVE, 1));
-    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPIDLE, 20));
-    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPCNT, 1));
 
-    (co_await coop::reveal_runner())->push_task(task_main(), &task);
+    coop_ensure(co_await post_connect(*this, sock));
 
     co_return true;
 }
