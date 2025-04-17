@@ -34,6 +34,8 @@ struct Socket {
     auto close() -> void;
     auto is_valid() const -> bool;
     auto set_blocking(bool blocking) -> bool;
+    auto set_sockopt(int name, int value) -> bool;
+    auto set_sockopt(int level, int name, int value) -> bool;
     auto get_sockopt(int name) -> std::optional<int>;
     auto read(void* data, size_t size, int flag = 0) -> coop::Async<ReadWriteResult>;
     auto write(const void* data, size_t size, int flag = 0) -> coop::Async<ReadWriteResult>;

@@ -72,6 +72,15 @@ auto Socket::set_blocking(const bool blocking) -> bool {
     return true;
 }
 
+auto Socket::set_sockopt(const int name, const int value) -> bool {
+    return set_sockopt(SOL_SOCKET, name, value);
+}
+
+auto Socket::set_sockopt(const int level, const int name, const int value) -> bool {
+    ensure(setsockopt(fd, level, name, &value, sizeof(value)) == 0);
+    return true;
+}
+
 auto Socket::get_sockopt(const int name) -> std::optional<int> {
     auto error = int();
     auto len   = socklen_t(sizeof(error));

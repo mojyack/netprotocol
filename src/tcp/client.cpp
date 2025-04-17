@@ -4,6 +4,7 @@
 #include <coop/thread.hpp>
 #include <netdb.h>
 #include <netinet/in.h>
+#include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
 
@@ -64,6 +65,9 @@ auto TCPClientBackend::connect(const std::array<uint8_t, 4> addr, const uint16_t
     coop_ensure(status == 0 || (status == -1 && errno == EINPROGRESS));
     coop_ensure(!(co_await coop::wait_for_file(sock.fd, false, true)).error);
     coop_ensure(sock.get_sockopt(SO_ERROR) == 0);
+    coop_ensure(sock.set_sockopt(SO_KEEPALIVE, 1));
+    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPIDLE, 20));
+    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPCNT, 1));
 
     (co_await coop::reveal_runner())->push_task(task_main(), &task);
 
