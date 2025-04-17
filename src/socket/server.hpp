@@ -9,7 +9,6 @@ namespace net::sock {
 struct SocketClientData : ClientData {
     coop::TaskHandle task;
     sock::Socket     sock;
-    bool             running = true;
 };
 
 struct SocketServerBackend : ServerBackend {
