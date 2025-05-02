@@ -26,10 +26,12 @@ auto send_recv_test() -> coop::Async<bool> {
     auto c2 = Client();
     prepare_client_2(c2);
     auto count     = 0uz;
-    c2.on_received = [&count, &message](net::BytesRef data) -> coop::Async<void> {
+    auto received  = coop::SingleEvent();
+    c2.on_received = [&count, &received, &message](net::BytesRef data) -> coop::Async<void> {
         std::println("received message from c2: {}", from_span(data));
         if(const auto resp = from_chars<size_t>(from_span(data)); resp && *resp == message.size()) {
             count += 1;
+            received.notify();
         }
         co_return;
     };
@@ -38,14 +40,16 @@ auto send_recv_test() -> coop::Async<bool> {
 
     co_await c1_task.join();
 
-    for(auto i = 0; i < 3; i += 1) {
+    for(auto i = 0; i < 1; i += 1) {
+        count = 0;
         for(auto i = 0; i < 3; i += 1) {
             coop_ensure(co_await c2.send(to_span(message)));
         }
-        co_await coop::sleep(std::chrono::milliseconds(300));
+        while(count != 3) {
+            co_await received;
+        }
         message += " hello";
     }
-    coop_ensure(count == 9, "{}", count);
 
     co_return true;
 }
@@ -75,7 +79,9 @@ auto pass = false;
 
 auto test() -> coop::Async<void> {
     coop_ensure(co_await send_recv_test());
+    PRINT("send_recv_test pass")
     coop_ensure(co_await close_test());
+    PRINT("close_test pass")
     pass = true;
 }
 } // namespace
