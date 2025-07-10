@@ -123,7 +123,9 @@ auto handle_message(DiscordClient& self, const Header& packet, coop::SingleEvent
         }
         break;
     case MessageType::Ping:
-        coop_ensure(co_await send_message(self, Header({self.name, {}, MessageType::Pong}).to_text()));
+        if(self.connected) {
+            coop_ensure(co_await send_message(self, Header({self.name, {}, MessageType::Pong}).to_text()));
+        }
         break;
     case MessageType::Pong:
         break;
