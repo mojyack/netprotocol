@@ -11,6 +11,7 @@
 #include "../macros/autoptr.hpp"
 #include "../macros/coop-assert.hpp"
 #include "client.hpp"
+#include "common.hpp"
 
 namespace {
 declare_autoptr(AddrInfo, addrinfo, freeaddrinfo);
@@ -28,6 +29,10 @@ auto post_connect(TCPClientBackend& self, sock::Socket& sock) -> coop::Async<boo
     co_return true;
 }
 } // namespace
+
+auto TCPClientBackend::get_peer_addr_ipv4() const -> std::optional<uint32_t> {
+    return ::net::tcp::get_peer_addr_ipv4(sock.fd);
+}
 
 auto TCPClientBackend::connect(const char* const host, const uint16_t port) -> coop::Async<bool> {
     coop_ensure(sock::init_socket_system());

@@ -7,6 +7,7 @@
 #include <sys/types.h>
 
 #include "../macros/coop-assert.hpp"
+#include "common.hpp"
 #include "server.hpp"
 
 namespace net::tcp {
@@ -16,6 +17,11 @@ auto TCPServerBackend::post_accept(sock::Socket& client) -> bool {
     ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPINTVL, 5));
     ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPCNT, 2));
     return true;
+}
+
+auto TCPServerBackend::get_peer_addr_ipv4(const net::ClientData& client) -> std::optional<uint32_t> {
+    const auto& sock = std::bit_cast<net::sock::SocketClientData*>(&client)->sock;
+    return ::net::tcp::get_peer_addr_ipv4(sock.fd);
 }
 
 auto TCPServerBackend::start(const uint16_t port, const int backlog) -> coop::Async<bool> {
