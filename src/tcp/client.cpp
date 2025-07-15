@@ -20,11 +20,7 @@ declare_autoptr(AddrInfo, addrinfo, freeaddrinfo);
 namespace net::tcp {
 namespace {
 auto post_connect(TCPClientBackend& self, sock::Socket& sock) -> coop::Async<bool> {
-    coop_ensure(sock.set_sockopt(SO_KEEPALIVE, 1));
-    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPIDLE, 20));
-    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPINTVL, 5));
-    coop_ensure(sock.set_sockopt(IPPROTO_TCP, TCP_KEEPCNT, 2));
-
+    coop_ensure(set_keepalive(sock, 20, 5, 2));
     (co_await coop::reveal_runner())->push_task(self.task_main(), &self.task);
     co_return true;
 }

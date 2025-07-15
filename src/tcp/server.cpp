@@ -12,10 +12,7 @@
 
 namespace net::tcp {
 auto TCPServerBackend::post_accept(sock::Socket& client) -> bool {
-    ensure(client.set_sockopt(SO_KEEPALIVE, 1));
-    ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPIDLE, 20));
-    ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPINTVL, 5));
-    ensure(client.set_sockopt(IPPROTO_TCP, TCP_KEEPCNT, 2));
+    ensure(set_keepalive(client, 20, 5, 2));
     return true;
 }
 
