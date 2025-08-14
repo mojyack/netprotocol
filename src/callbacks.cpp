@@ -1,7 +1,7 @@
 #include <coop/generator.hpp>
 
 #include "callbacks.hpp"
-#include "macros/coop-assert.hpp"
+#include "macros/coop-unwrap.hpp"
 
 namespace net {
 auto Callbacks::invoke(Header header, PrependableBuffer buffer) -> coop::Async<bool> {
@@ -18,6 +18,13 @@ auto Callbacks::invoke(Header header, PrependableBuffer buffer) -> coop::Async<b
     } else {
         coop_bail("no callback registered for id={} type={}", header.id, header.type);
     }
+    co_return true;
+}
+
+auto Callbacks::invoke(PrependableBuffer buffer) -> coop::Async<bool> {
+    coop_unwrap(parsed, split_header(buffer.body()));
+    const auto [header, _] = parsed;
+    coop_ensure(co_await invoke(header, std::move(buffer)));
     co_return true;
 }
 } // namespace net

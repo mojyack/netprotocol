@@ -15,5 +15,6 @@ struct Callbacks {
     LightMap<PacketID, Callback>   by_id;
 
     auto invoke(Header header, PrependableBuffer buffer) -> coop::Async<bool>;
+    auto invoke(PrependableBuffer buffer) -> coop::Async<bool>;
 };
 } // namespace net
