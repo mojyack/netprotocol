@@ -14,7 +14,7 @@ struct SocketClientBackend : ClientBackend {
     auto task_main() -> coop::Async<void>;
 
     // overrides
-    auto send(BytesRef data) -> coop::Async<bool> override;
+    auto send(PrependableBuffer data) -> coop::Async<bool> override;
     auto finish() -> coop::Async<bool> override;
 
     ~SocketClientBackend();

@@ -42,7 +42,10 @@ struct HelloReply {
 struct ClientData {
     net::PacketParser parser;
 
-    auto handle_payload(const net::Header header, const net::BytesRef payload) -> coop::Async<bool> {
+    auto on_received(PrependableBuffer buffer) -> coop::Async<bool> {
+        coop_unwrap(parsed, net::split_header(buffer.body()));
+        const auto [header, payload] = parsed;
+
         switch(header.type) {
         case PacketType::Hello: {
             coop_unwrap(request, (serde::load<net::BinaryFormat, Hello>(payload)));
@@ -51,7 +54,7 @@ struct ClientData {
         }
         case PacketType::RawPayload: {
             const auto size = payload.size();
-            coop_ensure(co_await parser.send_packet(PacketType::RawPayload, &size, sizeof(size), header.id));
+            coop_ensure(co_await parser.send_packet(PacketType::RawPayload, PrependableBuffer().append_object(size), header.id));
             break;
         }
         default:
@@ -62,9 +65,9 @@ struct ClientData {
     };
 
     ClientData(net::ServerBackend& backend, net::ClientData& client) {
-        parser.send_data = [&backend, &client](const net::BytesRef payload) -> coop::Async<bool> {
+        parser.send_data = [&backend, &client](PrependableBuffer payload) -> coop::Async<bool> {
             constexpr auto error_value = false;
-            co_ensure_v(co_await backend.send(client, payload));
+            co_ensure_v(co_await backend.send(client, std::move(payload)));
             co_return true;
         };
     }
@@ -73,12 +76,8 @@ struct ClientData {
 auto start_server(net::ServerBackend& backend) -> coop::Async<bool> {
     backend.alloc_client = [&backend](net::ClientData& client) -> coop::Async<void> { client.data = new ClientData(backend, client); co_return; };
     backend.free_client  = [](void* ptr) -> coop::Async<void> { delete(ClientData*)(ptr);co_return; };
-    backend.on_received  = [](const net::ClientData& client, net::BytesRef data) -> coop::Async<void> {
-        auto& c = *(ClientData*)client.data;
-        if(const auto p = c.parser.parse_received(data)) {
-            coop_ensure(co_await c.handle_payload(p->header, p->payload));
-        }
-        co_return;
+    backend.on_received  = [](const net::ClientData& client, PrependableBuffer data) -> coop::Async<void> {
+        coop_ensure(co_await ((ClientData*)client.data)->on_received(std::move(data)));
     };
     coop_ensure(co_await start_server_backend(backend));
     co_return true;
@@ -88,20 +87,17 @@ auto start_server(net::ServerBackend& backend) -> coop::Async<bool> {
 auto start_client(net::ClientBackend& backend) -> coop::Async<bool> {
     auto parser           = net::PacketParser();
     auto raw_payload_size = 0uz;
-    parser.send_data      = [&backend](const net::BytesRef payload) -> coop::Async<bool> {
-        constexpr auto error_value = false;
-        co_ensure_v(co_await backend.send(payload));
-        co_return true;
+    parser.send_data      = [&backend](PrependableBuffer buffer) -> coop::Async<bool> {
+        return backend.send(std::move(buffer));
     };
-    backend.on_received = [&parser, &raw_payload_size](net::BytesRef data) -> coop::Async<void> {
-        if(const auto p = parser.parse_received(data)) {
-            const auto [header, payload] = *p;
-            if(header.type == PacketType::RawPayload) {
-                coop_ensure(payload.size() == sizeof(size_t));
-                raw_payload_size += *std::bit_cast<size_t*>(payload.data());
-            } else {
-                coop_ensure(co_await parser.callbacks.invoke(header, payload));
-            }
+    backend.on_received = [&parser, &raw_payload_size](PrependableBuffer buffer) -> coop::Async<void> {
+        coop_unwrap(parsed, net::split_header(buffer.body()));
+        const auto [header, payload] = parsed;
+        if(header.type == PacketType::RawPayload) {
+            coop_ensure(payload.size() == sizeof(size_t));
+            raw_payload_size += *std::bit_cast<size_t*>(payload.data());
+        } else {
+            coop_ensure(co_await parser.callbacks.invoke(header, payload));
         }
         co_return;
     };
@@ -119,7 +115,7 @@ auto start_client(net::ClientBackend& backend) -> coop::Async<bool> {
     }
     for(auto i = 0; i < 3; i += 1) {
         const auto payload = std::vector<std::byte>(i * 100);
-        coop_ensure(co_await parser.send_packet(PacketType::RawPayload, payload.data(), payload.size()));
+        coop_ensure(co_await parser.send_packet(PacketType::RawPayload, PrependableBuffer().append_array(payload)));
         co_await coop::sleep(std::chrono::milliseconds(100));
         coop_ensure(raw_payload_size == payload.size());
         raw_payload_size = 0;

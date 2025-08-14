@@ -13,8 +13,8 @@ auto WebSocketClientBackend::task_main() -> coop::Async<void> {
     }
 }
 
-auto WebSocketClientBackend::send(BytesRef data) -> coop::Async<bool> {
-    coop_ensure(context.send(data));
+auto WebSocketClientBackend::send(PrependableBuffer data) -> coop::Async<bool> {
+    coop_ensure(context.send(std::move(data)));
     co_return true;
 }
 
@@ -27,9 +27,9 @@ auto WebSocketClientBackend::finish() -> coop::Async<bool> {
 }
 
 auto WebSocketClientBackend::connect(const ::ws::client::ContextParams& params, coop::TaskInjector& injector) -> coop::Async<bool> {
-    context.handler = [this, &injector](const BytesRef payload) -> void {
-        injector.inject_task([this, payload]() -> coop::Async<void> {
-            co_await on_received(payload);
+    context.handler = [this, &injector](PrependableBuffer payload) -> void {
+        injector.inject_task([this, &payload]() -> coop::Async<void> {
+            co_await on_received(std::move(payload));
         }());
     };
     coop_ensure(co_await coop::run_blocking([this, &params] { return context.init(params); }));

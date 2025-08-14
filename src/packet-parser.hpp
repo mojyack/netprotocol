@@ -8,32 +8,22 @@
 #include "callbacks.hpp"
 
 #include "macros/micro.hpp"
+#include "util/prependable-buffer.hpp"
 
 namespace net {
 struct PacketParser {
-    Callbacks             callbacks;
-    coop::Mutex           send_lock;
-    std::optional<Header> pending_header;
-    PacketID              id = 0;
+    Callbacks callbacks;
+    PacketID  id = 0;
 
-    std::function<coop::Async<bool>(BytesRef data)> send_data; // set me
+    std::function<coop::Async<bool>(PrependableBuffer data)> send_data; // set me
 
-    auto build_header(PacketType pt, size_t payload_size = 0, std::optional<PacketID> ref_id = std::nullopt) -> std::optional<Header>;
-    auto send_header(coop::LockGuard& lock, PacketType pt, size_t payload_size = 0, std::optional<PacketID> ref_id = std::nullopt) -> coop::Async<bool>;
-
-    // backend -> parser
-    struct ParsedPacket {
-        Header   header;
-        BytesRef payload;
-    };
-    auto parse_received(BytesRef data) -> std::optional<ParsedPacket>;
-
-    // user -> parser (-> backend)
     // send serializable struct
     template <packet T>
     auto send_packet(T packet, std::optional<PacketID> ref_id = std::nullopt) -> coop::Async<bool>;
+
     // send raw data
-    auto send_packet(PacketType pt, const void* data, size_t size, std::optional<PacketID> ref_id = std::nullopt) -> coop::Async<bool>;
+    auto send_packet(PacketType pt, PrependableBuffer packet, std::optional<PacketID> ref_id = std::nullopt) -> coop::Async<bool>;
+
     // send packet then wait for the response(packet with the same id)
     template <class T>
     using ResponseType = std::conditional_t<serde::serde_struct<T>, std::optional<T>, bool>;
@@ -43,17 +33,13 @@ struct PacketParser {
 
 template <packet T>
 auto PacketParser::send_packet(const T packet, const std::optional<PacketID> ref_id) -> coop::Async<bool> {
+    auto buf = PrependableBuffer();
     if constexpr(serde::serde_struct<T>) {
-        unwrap(payload, packet.template dump<BinaryFormat>(BytesArray(sizeof(Header))), co_return false);
-        unwrap(header, build_header(T::pt, payload.size() - sizeof(Header), ref_id), co_return false);
-        *(std::bit_cast<Header*>(payload.data())) = header;
-
-        auto lock = co_await coop::LockGuard::lock(send_lock);
-        ensure(co_await send_data(payload), co_return false);
-    } else {
-        auto lock = co_await coop::LockGuard::lock(send_lock);
-        ensure(co_await send_header(lock, T::pt, 0, ref_id), co_return false);
+        buf.enlarge(0); // initialize storage
+        unwrap(storage, packet.template dump<BinaryFormat>(std::move(buf.storage)), co_return false);
+        buf.storage = std::move(storage);
     }
+    ensure(co_await send_packet(T::pt, std::move(buf), ref_id), co_return false);
     co_return true;
 }
 
@@ -84,6 +70,8 @@ auto PacketParser::receive_response(Request packet) -> coop::Async<ResponseType<
     ensure(response, co_return error_value);
     co_return response;
 }
+
+auto split_header(BytesRef payload) -> std::optional<std::pair<Header, BytesRef>>;
 } // namespace net
 
 #include "macros/micro.hpp"

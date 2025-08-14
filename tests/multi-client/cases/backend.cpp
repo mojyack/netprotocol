@@ -15,10 +15,10 @@ struct ClientData {
 auto multiple_clients_test(net::ServerBackend& server, std::vector<net::ClientBackend*> clients) -> coop::Async<bool> {
     server.alloc_client = [](net::ClientData& client) -> coop::Async<void> { client.data = new ClientData{num_clients += 1};co_return; };
     server.free_client  = [](void* ptr) -> coop::Async<void> { delete(ClientData*)(ptr); co_return; };
-    server.on_received  = [&server](const net::ClientData& client, net::BytesRef data) -> coop::Async<void> {
+    server.on_received  = [&server](const net::ClientData& client, PrependableBuffer data) -> coop::Async<void> {
         auto& c = *(ClientData*)client.data;
-        std::println("received message from client {}: {}", c.num, from_span(data));
-        coop_ensure(co_await server.send(client, to_span(std::format("{}", data.size()))));
+        std::println("received message from client {}: {}", c.num, from_span(data.body()));
+        coop_ensure(co_await server.send(client, PrependableBuffer().append_array(std::format("{}", data.body().size()))));
         co_return;
     };
     coop_ensure(co_await start_server_backend(server));
@@ -27,9 +27,9 @@ auto multiple_clients_test(net::ServerBackend& server, std::vector<net::ClientBa
     auto count  = 0uz;
     auto closed = 0uz;
     for(const auto client : clients) {
-        client->on_received = [&count](net::BytesRef data) -> coop::Async<void> {
-            std::println("received message from server: {}", from_span(data));
-            if(const auto resp = from_chars<size_t>(from_span(data))) {
+        client->on_received = [&count](PrependableBuffer data) -> coop::Async<void> {
+            std::println("received message from server: {}", from_span(data.body()));
+            if(const auto resp = from_chars<size_t>(from_span(data.body()))) {
                 count += *resp;
             }
             co_return;
@@ -40,9 +40,10 @@ auto multiple_clients_test(net::ServerBackend& server, std::vector<net::ClientBa
     }
 
     const auto message = to_span("hello");
+    const auto buf     = PrependableBuffer().append_array(message);
     for(auto i = 0; i < 3; i += 1) {
         for(auto& client : clients) {
-            coop_ensure(co_await client->send(message));
+            coop_ensure(co_await client->send(buf));
         }
     }
     co_await coop::sleep(std::chrono::milliseconds(100));

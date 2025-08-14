@@ -25,19 +25,21 @@ auto SocketClientBackend::task_main() -> coop::Async<void> {
 loop:
     auto size = SizeType();
     sock_ensure(co_await sock.read(&size, sizeof(size)));
-    auto buffer = BytesArray(size);
-    sock_ensure(co_await sock.read(buffer.data(), size));
-    co_await on_received(buffer);
+    auto buf = PrependableBuffer();
+    sock_ensure(co_await sock.read(buf.enlarge(size).data(), size));
+    co_await on_received(std::move(buf));
     goto loop;
 #undef error_act
 }
 
-auto SocketClientBackend::send(const BytesRef data) -> coop::Async<bool> {
+auto SocketClientBackend::send(PrependableBuffer data) -> coop::Async<bool> {
 #define error_act co_return false
     const auto size = SizeType(data.size());
     coop_ensure(data.size() == size, "data too large {}", data.size());
-    sock_ensure(co_await sock.write(&size, sizeof(size), MSG_MORE), false);
-    sock_ensure(co_await sock.write(data.data(), data.size()), false);
+    const auto header = data.enlarge_forward(sizeof(size));
+    std::memcpy(header.data(), &size, sizeof(size));
+    const auto body = data.body();
+    sock_ensure(co_await sock.write(body.data(), body.size()), false);
     co_return true;
 #undef error_act
 }

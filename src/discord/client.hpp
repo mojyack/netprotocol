@@ -21,7 +21,7 @@ struct DiscordClient : ClientBackend {
     bool                connected = false;
 
     // overrides
-    auto send(BytesRef data) -> coop::Async<bool> override;
+    auto send(PrependableBuffer data) -> coop::Async<bool> override;
     auto finish() -> coop::Async<bool> override;
 
     auto connect(std::string name, std::string peer_name, uint64_t channel_id, const std::string& token, coop::TaskInjector& injector) -> coop::Async<bool>;

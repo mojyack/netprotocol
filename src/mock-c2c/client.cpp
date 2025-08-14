@@ -1,7 +1,6 @@
 #include <coop/task-handle.hpp>
 
 #include "../macros/coop-assert.hpp"
-#include "../util/concat.hpp"
 #include "client.hpp"
 
 namespace net::mock {
@@ -9,14 +8,14 @@ auto MockClient::task_main() -> coop::Async<void> {
 loop:
     co_await avaiable;
     for(auto& buffer : std::exchange(buffer, {})) {
-        co_await on_received(buffer);
+        co_await on_received(std::move(buffer));
     }
     goto loop;
 }
 
-auto MockClient::send(BytesRef data) -> coop::Async<bool> {
+auto MockClient::send(PrependableBuffer data) -> coop::Async<bool> {
     coop_ensure(peer != nullptr);
-    peer->buffer.emplace_back(copy(data));
+    peer->buffer.emplace_back(std::move(data));
     peer->avaiable.notify();
     co_return true;
 }

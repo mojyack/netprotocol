@@ -4,6 +4,15 @@
 #include "macros/coop-assert.hpp"
 #include "net/backend.hpp"
 
+#if 0 // to help clangd
+#include "net/uds/client.hpp"
+#include "net/uds/server.hpp"
+using Server = net::uds::UDSServerBackend;
+using Client = net::uds::UDSClientBackend;
+auto start_server_backend(net::ServerBackend& server) -> coop::Async<bool>;
+auto start_client_backend(net::ClientBackend& client) -> coop::Async<bool>;
+#endif
+
 template <class T, size_t N>
 auto make_ptr_vec(std::array<T, N>& clients) -> std::vector<net::ClientBackend*> {
     auto ret = std::vector<net::ClientBackend*>(N);

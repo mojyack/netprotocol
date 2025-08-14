@@ -60,18 +60,18 @@ auto WebSocketServerBackend::disconnect(const ClientData& client) -> coop::Async
     co_return true;
 }
 
-auto WebSocketServerBackend::send(const ClientData& client, BytesRef data) -> coop::Async<bool> {
+auto WebSocketServerBackend::send(const ClientData& client, PrependableBuffer data) -> coop::Async<bool> {
     auto& wsc = *std::bit_cast<WebSocketClientData*>(&client);
-    coop_ensure(context.send(wsc.client, data));
+    coop_ensure(context.send(wsc.client, std::move(data)));
     co_return true;
 }
 
 auto WebSocketServerBackend::start(const ::ws::server::ContextParams& params, coop::TaskInjector& injector) -> coop::Async<bool> {
     this->injector  = &injector;
-    context.handler = [this, &injector](::ws::server::Client* client, BytesRef payload) -> void {
+    context.handler = [this, &injector](::ws::server::Client* client, PrependableBuffer payload) -> void {
         auto& session = *std::bit_cast<WebSocketClientData*>(::ws::server::client_to_userdata(client));
-        injector.inject_task([this, &session, payload]() -> coop::Async<void> {
-            co_await on_received(session, payload);
+        injector.inject_task([this, &session, &payload]() -> coop::Async<void> {
+            co_await on_received(session, std::move(payload));
         }());
     };
     {

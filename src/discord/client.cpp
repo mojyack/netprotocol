@@ -8,9 +8,8 @@
 #include <coop/thread-event.hpp>
 #include <coop/thread.hpp>
 
-#include "../macros/coop-assert.hpp"
+#include "../macros/coop-unwrap.hpp"
 #include "../macros/logger.hpp"
-#include "../macros/unwrap.hpp"
 #include "client.hpp"
 #include "crypto/base64.hpp"
 
@@ -119,7 +118,11 @@ auto handle_message(DiscordClient& self, const Header& packet, coop::SingleEvent
         LOG_DEBUG(logger, "{}: received datagram of length {}", self.name, packet.body.size());
         self.recv_buf += packet.body;
         if(packet.type == MessageType::DatagramComplete) {
-            co_await self.on_received(crypto::base64::decode(std::exchange(self.recv_buf, {})));
+            coop_unwrap(size, crypto::base64::calc_decode_buffer_size(self.recv_buf.size()));
+            auto buf = PrependableBuffer();
+            coop_unwrap(real_size, crypto::base64::decode(std::exchange(self.recv_buf, {}), buf.enlarge(size)));
+            buf.resize(real_size);
+            co_await self.on_received(std::move(buf));
         }
         break;
     case MessageType::Ping:
@@ -136,8 +139,8 @@ auto handle_message(DiscordClient& self, const Header& packet, coop::SingleEvent
 }
 } // namespace
 
-auto DiscordClient::send(BytesRef data) -> coop::Async<bool> {
-    const auto encoded = crypto::base64::encode(data);
+auto DiscordClient::send(PrependableBuffer data) -> coop::Async<bool> {
+    const auto encoded = crypto::base64::encode(data.body());
 
     auto       text            = std::string_view(encoded);
     auto       header          = Header{name, {}, MessageType::Datagram}.to_text();

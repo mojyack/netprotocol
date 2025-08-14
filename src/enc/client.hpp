@@ -1,5 +1,6 @@
 #pragma once
 #include "../backend.hpp"
+#include "../common.hpp"
 #include "crypto/cipher.hpp"
 
 namespace net::enc {
@@ -12,7 +13,7 @@ struct ClientBackendEncAdaptor : ClientBackend {
     auto connect_inner(ClientBackend* backend, coop::Async<bool> start) -> coop::Async<bool>;
 
     // overrides
-    auto send(BytesRef data) -> coop::Async<bool> override;
+    auto send(PrependableBuffer data) -> coop::Async<bool> override;
     auto finish() -> coop::Async<bool> override;
 
     // backend-specific
@@ -25,4 +26,3 @@ struct ClientBackendEncAdaptor : ClientBackend {
     }
 };
 } // namespace net::enc
-
