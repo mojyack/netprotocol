@@ -49,11 +49,11 @@ auto PacketParser::receive_response(Request packet) -> coop::Async<ResponseType<
 
     auto event          = coop::SingleEvent();
     auto response       = ResponseType<Response>();
-    callbacks.by_id[id] = [&event, &response](const Header header, const BytesRef payload) -> coop::Async<bool> {
+    callbacks.by_id[id] = [&event, &response](const Header header, PrependableBuffer buffer) -> coop::Async<bool> {
         const auto ret = [&]() -> bool {
             ensure(header.type == Response::pt, return false);
             if constexpr(serde::serde_struct<Response>) {
-                response = serde::load<BinaryFormat, Response>(payload);
+                response = serde::load<BinaryFormat, Response>(buffer.body());
                 ensure(response, return false);
             } else {
                 response = true;
@@ -70,8 +70,6 @@ auto PacketParser::receive_response(Request packet) -> coop::Async<ResponseType<
     ensure(response, co_return error_value);
     co_return response;
 }
-
-auto split_header(BytesRef payload) -> std::optional<std::pair<Header, BytesRef>>;
 } // namespace net
 
 #include "macros/micro.hpp"

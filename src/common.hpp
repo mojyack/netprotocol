@@ -22,4 +22,6 @@ using BinaryFormat = serde::BinaryFormat<uint16_t>;
 
 using BytesArray = std::vector<std::byte>;
 using BytesRef   = std::span<const std::byte>;
+
+auto split_header(BytesRef payload) -> std::optional<std::pair<Header, BytesRef>>;
 } // namespace net

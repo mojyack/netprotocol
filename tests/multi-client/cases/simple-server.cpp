@@ -97,7 +97,7 @@ auto start_client(net::ClientBackend& backend) -> coop::Async<bool> {
             coop_ensure(payload.size() == sizeof(size_t));
             raw_payload_size += *std::bit_cast<size_t*>(payload.data());
         } else {
-            coop_ensure(co_await parser.callbacks.invoke(header, payload));
+            coop_ensure(co_await parser.callbacks.invoke(header, std::move(buffer)));
         }
         co_return;
     };
