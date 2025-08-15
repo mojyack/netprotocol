@@ -1,4 +1,4 @@
-crypto-utils https://github.com/mojyack/crypto-utils.git 920ea279de1ade367e8f06a4d89dc87498e399cd
+crypto-utils https://github.com/mojyack/crypto-utils.git fead15d35f50809a057fc544966afaffa3e6d3c8
 cutil https://github.com/mojyack/cutil.git 6c83dd80428a257ddab52606c23e281a4c54df85
 cutil-macros https://github.com/mojyack/cutil-macros.git 1d2a8214ed29989cc43fd970da8971da53af47a4
 serde https://github.com/mojyack/serde.git 89b81345d717864072057920cbac8a3dd19574f3
