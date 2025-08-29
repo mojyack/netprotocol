@@ -27,12 +27,14 @@ auto main() -> int {
     by_hostname = false;
     runner.push_task(test());
     runner.run();
+    const auto pass_1 = std::exchange(pass, false);
 
     by_hostname = true;
     runner.push_task(test());
     runner.run();
+    const auto pass_2 = std::exchange(pass, false);
 
-    if(pass) {
+    if(pass_1 && pass_2) {
         std::println("pass");
         return 0;
     } else {
