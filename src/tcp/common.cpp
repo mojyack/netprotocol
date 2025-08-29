@@ -1,7 +1,11 @@
 #include <cstring>
 
+#if defined(_WIN32)
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
 #include <netinet/tcp.h>
+#endif
 
 #include "../macros/assert.hpp"
 #include "common.hpp"

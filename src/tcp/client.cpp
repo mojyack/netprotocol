@@ -2,11 +2,16 @@
 #include <coop/promise.hpp>
 #include <coop/runner.hpp>
 #include <coop/thread.hpp>
+
+#if defined(_WIN32)
+#include <ws2tcpip.h>
+#else
 #include <netdb.h>
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#endif
 
 #include "../macros/autoptr.hpp"
 #include "../macros/coop-assert.hpp"
@@ -19,6 +24,18 @@ declare_autoptr(AddrInfo, addrinfo, freeaddrinfo);
 
 namespace net::tcp {
 namespace {
+#if defined(_WIN32)
+auto get_last_error() -> auto {
+    return WSAGetLastError();
+}
+constexpr auto connect_in_progress = WSAEWOULDBLOCK;
+#else
+auto get_last_error() -> auto {
+    return errno;
+}
+constexpr auto connect_in_progress = EINPROGRESS;
+#endif
+
 auto post_connect(TCPClientBackend& self, sock::Socket& sock) -> coop::Async<bool> {
     coop_ensure(set_keepalive(sock, 20, 5, 2));
     (co_await coop::reveal_runner())->push_task(self.task_main(), &self.task);
@@ -48,7 +65,7 @@ auto TCPClientBackend::connect(const char* const host, const uint16_t port) -> c
         }
         coop_ensure(sock.set_blocking(false));
         ((sockaddr_in*)ptr->ai_addr)->sin_port = htons(port); // override port
-        if(const auto r = ::connect(sock.fd, ptr->ai_addr, ptr->ai_addrlen); !(r == 0 || (r == -1 && errno == EINPROGRESS))) {
+        if(const auto r = ::connect(sock.fd, ptr->ai_addr, ptr->ai_addrlen); !(r == 0 || (r == -1 && get_last_error() == connect_in_progress))) {
             continue;
         }
         if((co_await coop::wait_for_file(sock.fd, false, true)).error || sock.get_sockopt(SO_ERROR) != 0) {
@@ -75,7 +92,7 @@ auto TCPClientBackend::connect(const std::array<uint8_t, 4> addr, const uint16_t
     info.sin_addr.s_addr = htonl(sock::build_ipv4_addr(addr[0], addr[1], addr[2], addr[3]));
     coop_ensure(sock.set_blocking(false));
     const auto status = ::connect(sock.fd, (sockaddr*)&info, sizeof(info));
-    coop_ensure(status == 0 || (status == -1 && errno == EINPROGRESS));
+    coop_ensure(status == 0 || (status == -1 && get_last_error() == connect_in_progress), "errno={}", get_last_error());
     coop_ensure(!(co_await coop::wait_for_file(sock.fd, false, true)).error);
     coop_ensure(sock.get_sockopt(SO_ERROR) == 0);
 

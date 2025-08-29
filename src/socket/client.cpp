@@ -3,9 +3,14 @@
 #include <coop/runner.hpp>
 #include <coop/task-handle.hpp>
 #include <coop/thread.hpp>
+
+#if defined(_WIN32)
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#endif
 
 #include "../macros/coop-assert.hpp"
 #include "../util/cleaner.hpp"

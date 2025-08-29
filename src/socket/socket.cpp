@@ -58,7 +58,7 @@ auto Socket::is_valid() const -> bool {
 auto Socket::set_blocking(const bool blocking) -> bool {
 #if defined(_WIN32)
     auto mode = u_long(blocking ? 0 : 1);
-    ensure(ioctlsocket(fd, FIONBIO, &mode) == 0, WSAGetLastError());
+    ensure(ioctlsocket(fd, FIONBIO, &mode) == 0, "error={}", WSAGetLastError());
 #else
     auto flags = fcntl(fd, F_GETFL, 0);
     ensure(flags >= 0);
@@ -77,14 +77,14 @@ auto Socket::set_sockopt(const int name, const int value) -> bool {
 }
 
 auto Socket::set_sockopt(const int level, const int name, const int value) -> bool {
-    ensure(setsockopt(fd, level, name, &value, sizeof(value)) == 0);
+    ensure(setsockopt(fd, level, name, (const char*)&value, sizeof(value)) == 0);
     return true;
 }
 
 auto Socket::get_sockopt(const int name) -> std::optional<int> {
     auto error = int();
     auto len   = socklen_t(sizeof(error));
-    ensure(getsockopt(fd, SOL_SOCKET, name, &error, &len) == 0);
+    ensure(getsockopt(fd, SOL_SOCKET, name, (char*)&error, &len) == 0);
     return error;
 }
 

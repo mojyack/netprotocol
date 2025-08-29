@@ -1,10 +1,15 @@
 #include <coop/io.hpp>
 #include <coop/promise.hpp>
 #include <coop/runner.hpp>
+
+#if defined(_WIN32)
+#include <ws2tcpip.h>
+#else
 #include <netinet/in.h>
 #include <netinet/tcp.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#endif
 
 #include "../macros/coop-assert.hpp"
 #include "common.hpp"
