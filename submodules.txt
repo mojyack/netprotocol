@@ -1,5 +1,5 @@
 crypto-utils https://github.com/mojyack/crypto-utils.git fead15d35f50809a057fc544966afaffa3e6d3c8
-cutil https://github.com/mojyack/cutil.git 6c83dd80428a257ddab52606c23e281a4c54df85
+cutil https://github.com/mojyack/cutil.git b3da213a0663710f2baf5d3dc4a72b694b5da90b
 cutil-macros https://github.com/mojyack/cutil-macros.git 1d2a8214ed29989cc43fd970da8971da53af47a4
-serde https://github.com/mojyack/serde.git 89b81345d717864072057920cbac8a3dd19574f3
+serde https://github.com/mojyack/serde.git cff5967b2aaa341812dcf5cd3cc4ade402cedd4c
 websocket-cpp https://github.com/mojyack/websocket-cpp.git 58c4069075ece36b250d63619b40d6f9f123bc63
