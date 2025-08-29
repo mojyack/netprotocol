@@ -6,10 +6,12 @@ executable('mock',
   dependencies : netprotocol_deps + netprotocol_mock_c2c_deps,
 )
 
-subdir('net/discord')
-executable('discord',
-  files(
-    'discord.cpp',
-  ) + netprotocol_discord_files,
-  dependencies : netprotocol_deps + netprotocol_discord_deps,
-)
+if get_option('discord')
+  subdir('net/discord')
+  executable('discord',
+    files(
+      'discord.cpp',
+    ) + netprotocol_discord_files,
+    dependencies : netprotocol_deps + netprotocol_discord_deps,
+  )
+endif

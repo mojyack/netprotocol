@@ -1,0 +1,2 @@
+option('websocket', type : 'boolean')
+option('discord', type : 'boolean')

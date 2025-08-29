@@ -29,10 +29,12 @@ executable('enc',
   dependencies : netprotocol_deps + netprotocol_enc_deps + netprotocol_tcp_deps,
 )
 
-subdir('net/ws')
-executable('ws',
-  files(
-    'ws.cpp',
-  ) + common_files + netprotocol_ws_server_files + netprotocol_ws_client_files,
-  dependencies : netprotocol_deps + netprotocol_ws_deps,
-)
+if get_option('websocket')
+  subdir('net/ws')
+  executable('ws',
+    files(
+      'ws.cpp',
+    ) + common_files + netprotocol_ws_server_files + netprotocol_ws_client_files,
+    dependencies : netprotocol_deps + netprotocol_ws_deps,
+  )
+endif
