@@ -48,15 +48,15 @@ auto SocketServerBackend::client_main(decltype(client_data)::iterator iter) -> c
 
     coop_ensure(post_accept(iter->sock));
 
+    while(!iter->finish) {
 #define error_act co_return
-loop:
-    auto size = SizeType();
-    sock_ensure(co_await iter->sock.read(&size, sizeof(size)));
-    auto buf = PrependableBuffer();
-    sock_ensure(co_await iter->sock.read(buf.enlarge(size).data(), size));
-    co_await on_received(*iter, std::move(buf));
-    goto loop;
+        auto size = SizeType();
+        sock_ensure(co_await iter->sock.read(&size, sizeof(size)));
+        auto buf = PrependableBuffer();
+        sock_ensure(co_await iter->sock.read(buf.enlarge(size).data(), size));
+        co_await on_received(*iter, std::move(buf));
 #undef error_act
+    }
 }
 
 auto SocketServerBackend::post_accept(Socket& /*client*/) -> bool {
@@ -72,8 +72,13 @@ auto SocketServerBackend::shutdown() -> coop::Async<bool> {
 }
 
 auto SocketServerBackend::disconnect(const ClientData& client) -> coop::Async<bool> {
-    auto& tcpc = *std::bit_cast<SocketClientData*>(&client);
-    tcpc.task.cancel();
+    auto& tcpc   = *std::bit_cast<SocketClientData*>(&client);
+    auto& handle = tcpc.task;
+    if(handle.task != nullptr && handle.task->suspend_reason.index() == coop::by_io_index) {
+        handle.cancel();
+    } else {
+        tcpc.finish = true;
+    }
     co_return true;
 }
 
