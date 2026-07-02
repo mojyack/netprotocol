@@ -2,6 +2,7 @@
 #include <coop/generator.hpp>
 #include <coop/runner.hpp>
 #include <coop/task-injector.hpp>
+#include <coop/thread-pre.hpp>
 
 #include "../backend.hpp"
 #include "ws/client.hpp"
@@ -11,6 +12,7 @@ struct WebSocketClientBackend : ClientBackend {
     // private
     ::ws::client::Context context;
     coop::TaskHandle      task;
+    coop::Thread          thread;
 
     auto task_main() -> coop::Async<void>;
 

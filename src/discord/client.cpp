@@ -161,7 +161,7 @@ auto DiscordClient::finish() -> coop::Async<bool> {
         co_return true;
     }
     keepalive_task.cancel();
-    co_await coop::run_blocking([this] { cluster->shutdown(); delete cluster; });
+    co_await coop::Thread().run([this] { cluster->shutdown(); delete cluster; });
     cluster = nullptr;
     co_return true;
 }

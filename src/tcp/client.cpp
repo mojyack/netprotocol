@@ -55,7 +55,7 @@ auto TCPClientBackend::connect(const char* const host, const uint16_t port) -> c
         auto hint        = addrinfo();
         hint.ai_family   = AF_UNSPEC;
         hint.ai_socktype = SOCK_STREAM;
-        coop_ensure(co_await coop::run_blocking([&] { return getaddrinfo(host, NULL, &hint, std::inout_ptr(result)); }) == 0);
+        coop_ensure(co_await coop::Thread().run([&] { return getaddrinfo(host, NULL, &hint, std::inout_ptr(result)); }) == 0);
     }
     for(auto ptr = result.get(); ptr != NULL; ptr = ptr->ai_next) {
         // PRINT("family={} socktype={} protocol={}", ptr->ai_family, ptr->ai_socktype, ptr->ai_protocol);

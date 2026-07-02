@@ -9,7 +9,7 @@ namespace net::ws {
 auto WebSocketClientBackend::task_main() -> coop::Async<void> {
     auto cleaner = Cleaner{[&] { on_closed(); }};
     while(context.state == ::ws::client::State::Connected) {
-        co_await coop::run_blocking([this] { context.process(); });
+        co_await thread.run([this] { context.process(); });
     }
 }
 
@@ -32,7 +32,7 @@ auto WebSocketClientBackend::connect(const ::ws::client::ContextParams& params, 
             co_await on_received(std::move(payload));
         }());
     };
-    coop_ensure(co_await coop::run_blocking([this, &params] { return context.init(params); }));
+    coop_ensure(co_await thread.run([this, &params] { return context.init(params); }));
     (co_await coop::reveal_runner())->push_task(task_main(), &task);
     co_return true;
 }

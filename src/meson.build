@@ -4,5 +4,5 @@ netprotocol_files = files(
 )
 
 netprotocol_deps = [
-  dependency('coop', version : ['>=1.2.3', '<1.3']),
+  dependency('coop', version : ['>=1.3.0', '<1.4']),
 ]

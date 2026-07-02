@@ -40,8 +40,9 @@ struct SessionDataInitializer : ::ws::server::SessionDataInitializer {
 } // namespace
 
 auto WebSocketServerBackend::task_main() -> coop::Async<void> {
+    auto thread = coop::Thread();
     while(context.state == ::ws::server::State::Connected) {
-        co_await coop::run_blocking([this] { context.process(); });
+        co_await thread.run([this] { context.process(); });
     }
 }
 
