@@ -1,14 +1,15 @@
 #pragma once
 #include "../backend.hpp"
-#include "../common.hpp"
+#include "../util/bytes.hpp"
 #include "crypto/cipher.hpp"
+#include "crypto/x25519.hpp"
 
 namespace net::enc {
 struct ClientBackendEncAdaptor : ClientBackend {
     // private
-    std::unique_ptr<ClientBackend> inner;
-    BytesArray                     secret;
-    crypto::AutoCipherContext      cipher_context;
+    std::unique_ptr<ClientBackend>      inner;
+    BytesArray<crypto::x25519::key_len> secret;
+    crypto::AutoCipherContext           cipher_context;
 
     auto connect_inner(ClientBackend* backend, coop::Async<bool> start) -> coop::Async<bool>;
 

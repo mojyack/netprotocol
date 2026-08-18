@@ -1,6 +1,7 @@
 #pragma once
 #include <utility>
 
+#include "util/bytes.hpp"
 #include "serde/bin/format.hpp"
 
 namespace net {
@@ -20,8 +21,5 @@ concept packet = (std::is_enum_v<decltype(T::pt)> && std::same_as<decltype(std::
 
 using BinaryFormat = serde::BinaryFormat<uint16_t>;
 
-using BytesArray = std::vector<std::byte>;
-using BytesRef   = std::span<const std::byte>;
-
-auto split_header(BytesRef payload) -> std::optional<std::pair<Header, BytesRef>>;
+auto split_header(BytesSpan payload) -> std::optional<std::pair<Header, BytesSpan>>;
 } // namespace net

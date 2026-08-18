@@ -14,7 +14,7 @@ auto PacketParser::send_packet(PacketType pt, PrependableBuffer packet, const st
     co_return true;
 }
 
-auto split_header(const BytesRef payload) -> std::optional<std::pair<Header, BytesRef>> {
+auto split_header(const BytesSpan payload) -> std::optional<std::pair<Header, BytesSpan>> {
     ensure(payload.size() >= sizeof(Header));
     return std::pair{
         *std::bit_cast<Header*>(payload.data()),
