@@ -1,14 +1,18 @@
 subdir('net/mock-c2c')
-executable(
+test(
     'mock',
-    files(
-        'mock.cpp',
-    ) + netprotocol_mock_c2c_files,
-    dependencies: netprotocol_deps + netprotocol_mock_c2c_deps,
+    executable(
+        'mock',
+        files(
+            'mock.cpp',
+        ) + netprotocol_mock_c2c_files,
+        dependencies: netprotocol_deps + netprotocol_mock_c2c_deps,
+    ),
 )
 
 if get_option('discord')
     subdir('net/discord')
+    # no test(), needs discord token
     executable(
         'discord',
         files(

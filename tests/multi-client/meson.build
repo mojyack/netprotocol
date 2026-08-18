@@ -6,39 +6,51 @@ common_files = files(
 ) + netprotocol_files
 
 subdir('net/tcp')
-executable(
+test(
     'tcp',
-    files(
-        'tcp.cpp',
-    ) + common_files + netprotocol_tcp_server_files + netprotocol_tcp_client_files,
-    dependencies: netprotocol_deps + netprotocol_tcp_deps,
+    executable(
+        'tcp',
+        files(
+            'tcp.cpp',
+        ) + common_files + netprotocol_tcp_server_files + netprotocol_tcp_client_files,
+        dependencies: netprotocol_deps + netprotocol_tcp_deps,
+    ),
 )
 
 subdir('net/uds')
-executable(
+test(
     'uds',
-    files(
-        'uds.cpp',
-    ) + common_files + netprotocol_uds_server_files + netprotocol_uds_client_files,
-    dependencies: netprotocol_deps + netprotocol_uds_deps,
+    executable(
+        'uds',
+        files(
+            'uds.cpp',
+        ) + common_files + netprotocol_uds_server_files + netprotocol_uds_client_files,
+        dependencies: netprotocol_deps + netprotocol_uds_deps,
+    ),
 )
 
 subdir('net/enc')
-executable(
+test(
     'enc',
-    files(
-        'enc.cpp',
-    ) + common_files + netprotocol_enc_server_files + netprotocol_enc_client_files + netprotocol_tcp_server_files + netprotocol_tcp_client_files,
-    dependencies: netprotocol_deps + netprotocol_enc_deps + netprotocol_tcp_deps,
+    executable(
+        'enc',
+        files(
+            'enc.cpp',
+        ) + common_files + netprotocol_enc_server_files + netprotocol_enc_client_files + netprotocol_tcp_server_files + netprotocol_tcp_client_files,
+        dependencies: netprotocol_deps + netprotocol_enc_deps + netprotocol_tcp_deps,
+    ),
 )
 
 if get_option('websocket')
     subdir('net/ws')
-    executable(
+    test(
         'ws',
-        files(
-            'ws.cpp',
-        ) + common_files + netprotocol_ws_server_files + netprotocol_ws_client_files,
-        dependencies: netprotocol_deps + netprotocol_ws_deps,
+        executable(
+            'ws',
+            files(
+                'ws.cpp',
+            ) + common_files + netprotocol_ws_server_files + netprotocol_ws_client_files,
+            dependencies: netprotocol_deps + netprotocol_ws_deps,
+        ),
     )
 endif
