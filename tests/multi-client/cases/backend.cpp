@@ -17,7 +17,7 @@ auto multiple_clients_test(net::ServerBackend& server, std::vector<net::ClientBa
     server.free_client  = [](void* ptr) -> coop::Async<void> { delete(ClientData*)(ptr); co_return; };
     server.on_received  = [&server](const net::ClientData& client, PrependableBuffer data) -> coop::Async<void> {
         auto& c = *(ClientData*)client.data;
-        std::println("received message from client {}: {}", c.num, from_span(data.body()));
+        std::println("received message from client {}: {}", c.num, span_as_str(data.body()));
         coop_ensure(co_await server.send(client, PrependableBuffer().append_array(std::format("{}", data.body().size()))));
         co_return;
     };
@@ -28,8 +28,8 @@ auto multiple_clients_test(net::ServerBackend& server, std::vector<net::ClientBa
     auto closed = 0uz;
     for(const auto client : clients) {
         client->on_received = [&count](PrependableBuffer data) -> coop::Async<void> {
-            std::println("received message from server: {}", from_span(data.body()));
-            if(const auto resp = from_chars<size_t>(from_span(data.body()))) {
+            std::println("received message from server: {}", span_as_str(data.body()));
+            if(const auto resp = from_chars<size_t>(span_as_str(data.body()))) {
                 count += *resp;
             }
             co_return;
@@ -39,7 +39,7 @@ auto multiple_clients_test(net::ServerBackend& server, std::vector<net::ClientBa
         std::println("client connected");
     }
 
-    const auto message = to_span("hello");
+    const auto message = str_as_span("hello");
     const auto buf     = PrependableBuffer().append_array(message);
     for(auto i = 0; i < 3; i += 1) {
         for(auto& client : clients) {

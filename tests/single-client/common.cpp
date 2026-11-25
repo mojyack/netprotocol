@@ -25,7 +25,7 @@ auto send_recv_test() -> coop::Async<bool> {
     auto cleaner   = Cleaner{[&c1_task] { c1_task.cancel(); }};
     c1.on_received = [&c1](PrependableBuffer buffer) -> coop::Async<void> {
         const auto body = buffer.body();
-        std::println("received message from c1: {}", from_span(body));
+        std::println("received message from c1: {}", span_as_str(body));
         co_await c1.send(PrependableBuffer().append_array(std::format("{}", body.size())));
         co_return;
     };
@@ -39,8 +39,8 @@ auto send_recv_test() -> coop::Async<bool> {
     auto received  = coop::SingleEvent();
     c2.on_received = [&count, &received, &message](PrependableBuffer buffer) -> coop::Async<void> {
         const auto body = buffer.body();
-        std::println("received message from c2: {}", from_span(body));
-        if(const auto resp = from_chars<size_t>(from_span(body)); resp && *resp == message.size()) {
+        std::println("received message from c2: {}", span_as_str(body));
+        if(const auto resp = from_chars<size_t>(span_as_str(body)); resp && *resp == message.size()) {
             count += 1;
             received.notify();
         }

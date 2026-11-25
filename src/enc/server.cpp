@@ -85,7 +85,7 @@ auto ServerBackendEncAdaptor::send(const ClientData& client, PrependableBuffer d
     buf.enlarge(crypto::c20p1305::iv_len + enc_len);
     const auto iv  = buf.body().subspan<0, crypto::c20p1305::iv_len>();
     const auto enc = buf.body().subspan<crypto::c20p1305::iv_len>();
-    engine.random_fill_fixed_len<crypto::c20p1305::iv_len>(iv.data());
+    engine.random_fill(iv);
     coop_ensure(crypto::c20p1305::encrypt(cipher_context.get(), tcpc.secret, iv, body, enc));
     coop_ensure(co_await inner->send(*tcpc.inner, std::move(buf)));
     co_return true;
