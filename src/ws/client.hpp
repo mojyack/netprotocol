@@ -2,7 +2,7 @@
 #include <coop/generator.hpp>
 #include <coop/runner.hpp>
 #include <coop/task-injector.hpp>
-#include <coop/thread-pre.hpp>
+#include <coop/thread.hpp>
 
 #include "../backend.hpp"
 #include "ws/client.hpp"

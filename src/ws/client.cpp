@@ -1,5 +1,4 @@
 #include <coop/task-handle.hpp>
-#include <coop/thread.hpp>
 
 #include "client.hpp"
 #include "macros/coop-assert.hpp"

@@ -19,7 +19,7 @@ auto on_received_normal(ServerBackendEncAdaptor& self, const ClientData& inner_c
     const auto enc  = payload.subspan<crypto::c20p1305::iv_len>();
     auto       dec  = PrependableBuffer();
     const auto span = dec.enlarge(crypto::c20p1305::calc_decryption_buffer_size(enc.size()));
-    coop_ensure(crypto::c20p1305::decrypt(self.cipher_context.get(), client.secret, iv, enc, span));
+    coop_ensure(crypto::c20p1305::decrypt(self.cipher_context.get(), client.secret, iv, {}, enc, span));
     co_await self.on_received(client, std::move(dec));
 }
 
@@ -86,7 +86,7 @@ auto ServerBackendEncAdaptor::send(const ClientData& client, PrependableBuffer d
     const auto iv  = buf.body().subspan<0, crypto::c20p1305::iv_len>();
     const auto enc = buf.body().subspan<crypto::c20p1305::iv_len>();
     engine.random_fill(iv);
-    coop_ensure(crypto::c20p1305::encrypt(cipher_context.get(), tcpc.secret, iv, body, enc));
+    coop_ensure(crypto::c20p1305::encrypt(cipher_context.get(), tcpc.secret, iv, {}, body, enc));
     coop_ensure(co_await inner->send(*tcpc.inner, std::move(buf)));
     co_return true;
 }
